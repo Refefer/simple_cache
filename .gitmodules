@@ -1,0 +1,3 @@
+[submodule "src/pairheap"]
+	path = src/pairheap
+	url = git@github.com:Refefer/Pairheap.git
