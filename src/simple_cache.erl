@@ -117,15 +117,12 @@ clean_expired(Table, Heap, CurrentTime) ->
             % Grab the key
             case ets:lookup(Table, Key) of
                 % We need to check that the Expiration date hasn't been updated 
-                %to a later time.
+                % to a later time.
                 [{Key, _Value, RealExpires}] when RealExpires =< CurrentTime ->
                     ets:delete(Table, Key);
 
-                % Item has expired
-                [_Item] -> ok;
-
                 % Key is no longer in the table or hasn't expired, move along.
-                [] -> ok
+                _Other -> ok
             end,
             {ok, NewHeap} = pairheap:delete_min(Heap),
             clean_expired(Table, NewHeap);
