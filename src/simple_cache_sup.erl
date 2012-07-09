@@ -1,4 +1,3 @@
-
 -module(simple_cache_sup).
 
 -behaviour(supervisor).

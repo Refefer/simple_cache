@@ -1,6 +1,6 @@
 {application, simple_cache,
  [
-  {description, ""},
+  {description, "Simple memory cache with expiration."},
   {vsn, "1"},
   {registered, []},
   {applications, [
