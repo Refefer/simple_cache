@@ -25,7 +25,7 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 set(Key, Value) ->
-    get_server:cast({set, Key, Value, infinity}).
+    gen_server:cast({set, Key, Value, infinity}).
 
 set(Key, _Value, 0) -> delete(Key);
 
