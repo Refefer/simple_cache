@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0, set/2, set/3, lookup/1, lookup/2, delete/1]).
+-export([start_link/0, set/2, set/3, lookup/1, lookup/2, delete/1, clear/0]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -25,7 +25,7 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 set(Key, Value) ->
-    gen_server:cast({set, Key, Value, infinity}).
+    gen_server:cast(?SERVER, {set, Key, Value, infinity}).
 
 set(Key, _Value, 0) -> delete(Key);
 
@@ -45,6 +45,10 @@ lookup(Key, Default) ->
 delete(Key) ->
     gen_server:cast(?SERVER, {delete, Key}),
     ok.
+
+% Clears the table completely
+clear() ->
+    gen_server:cast(?SERVER, clear).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -69,7 +73,7 @@ handle_cast({set, Key, Value, infinity}, #state{table=Table, heap=Heap} = State)
 handle_cast({set, Key, Value, Expires}, #state{table=Table, heap=Heap} = State) ->
     ExpireTime = current_time() + Expires,
     ets:insert(Table, {Key, Value, ExpireTime}),
-    {NewHeap, Timeout} = clean_expired(Table, pairheap:insert(Heap, {Key, ExpireTime})),
+    {NewHeap, Timeout} = clean_expired(Table, pairheap:insert(Heap, {ExpireTime, Key})),
     {noreply, State#state{heap=NewHeap}, Timeout};
 
 % Delete a key from the cache.
@@ -77,6 +81,10 @@ handle_cast({delete, Key}, #state{table=Table}=State) ->
     ets:delete(Table, Key),
     {NewHeap, Timeout} = clean_expired(State),
     {noreply, State#state{heap=NewHeap}, Timeout};
+
+handle_cast(clear, State) ->
+    ets:delete_all_objects(?SERVER),
+    {noreply, State#state{heap=pairheap:new()}};
 
 handle_cast(_Msg, State) ->
     {NewHeap, Timeout} = clean_expired(State),
@@ -112,7 +120,7 @@ clean_expired(Table, Heap) ->
 clean_expired(Table, Heap, CurrentTime) ->
     case pairheap:find_min(Heap) of
         % When we have a key that looks expired.
-        {ok, {Key, Expires}} when Expires =< CurrentTime ->
+        {ok, {Expires, Key}} when Expires =< CurrentTime ->
 
             % Grab the key
             case ets:lookup(Table, Key) of
@@ -128,7 +136,7 @@ clean_expired(Table, Heap, CurrentTime) ->
             clean_expired(Table, NewHeap);
 
         % Non-expired key
-        {ok, {_Key, Expires}} ->
+        {ok, {Expires, _Key}} ->
             {Heap, Expires - CurrentTime};
 
         % Empty Heap, never times out.
