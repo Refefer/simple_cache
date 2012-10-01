@@ -137,7 +137,7 @@ clean_expired(Table, Heap, CurrentTime) ->
 
         % Non-expired key
         {ok, {Expires, _Key}} ->
-            {Heap, Expires - CurrentTime};
+            {Heap, (Expires - CurrentTime) * 1000};
 
         % Empty Heap, never times out.
         {error, empty} ->
